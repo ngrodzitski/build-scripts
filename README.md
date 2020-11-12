@@ -48,7 +48,7 @@ conan install -s compiler=gcc -s compiler.version=9.3 -s \
       compiler.libcxx=libstdc++11 -s build_type=Release \
       --build missing /home/ngrodzitski/github/ngrodzitski/my_prj
 
-cmake -DCMAKE_BUILD_TYPE=Release /home/ngrodzitski/github/ngrodzitski
+cmake -DCMAKE_BUILD_TYPE=Release /home/ngrodzitski/github/ngrodzitski/my_prj
 cmake --build . -j 8
 ```
 
