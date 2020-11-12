@@ -3,7 +3,6 @@
 A collection of scripts for building C++ projects with CMake and [Conan](https://conan.io/) package manager.
 
 In order for default paths to work a directory with scripts `build-scripts` is considered to be on the same level as root `CMakeLists.txt`.
-.
 
 ## linux
 
