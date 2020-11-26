@@ -31,6 +31,8 @@ Usage: ./linux_common.sh [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|-
     -h, --help: Prints help
 ```
 
+Scripts named `gccNN.sh`/`clangN.sh` are shortcuts for common cases of build environment.
+
 Script prepares and executes shell commands to perform a build with given parameters.
 
 Example of commands executed for gcc93:
