@@ -11,19 +11,23 @@ Core script is `linux_common.sh`. Help speaks for itself:
 ```
 $ ./linux_common.sh -h
 The general script's help msg
-Usage: ./linux_common.sh [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [-j|--make-jobs <arg>] [--cmake-path <arg>] [--cmake-options <arg>] [--(no-)compiler-names-add-version] [--(no-)conan-enable] [--(no-)run-ctest] [--(no-)run-install] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]
+Usage: ./linux_common.sh [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [--(no-)compiler-names-add-version] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [--(no-)conan-enable] [--conan-options <arg>] [--conan-deploy-path <arg>] [--cmake-path <arg>] [--ctest-path <arg>] [--cmake-options <arg>] [-n|--(no-)cmake-ninja] [--(no-)run-ctest] [-j|--make-jobs <arg>] [--(no-)run-install] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]
     -c, --compiler: Compiler to use: clang, gcc (default: 'gcc')
     -M, --compiler-major: Compiler major version (no default)
     -m, --compiler-minor: Compiler minor version (no default)
+    --compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)
     -t, --build-type: Build type: Release, Debug, RelWithDebInfo (default: 'Release')
     -d, --build-dir: Directory to build in (CMAKE_BINARY_DIR in terms of CMake) (no default)
     -s, --source-dir: Source root directory (if not specified considered a parent directory of a build directory) (no default)
-    -j, --make-jobs: Number of jobs when running make (default: '1')
-    --cmake-path: Path to CMake (default: 'cmake')
-    --cmake-options: Extra CMake options (e.g. "-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>") (no default)
-    --compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)
     --conan-enable, --no-conan-enable: Enable conan for a project (runs 'conan install' command with necessary flags for a given source directory) (off by default)
+    --conan-options: Extra Conan options (e.g. "-r my-remote-server") (no default)
+    --conan-deploy-path: Run conan deploy install to a given path (no default)
+    --cmake-path: Path to CMake (default: 'cmake')
+    --ctest-path: Path to CTest (default: 'ctest')
+    --cmake-options: Extra CMake options (e.g. "-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>") (no default)
+    -n, --cmake-ninja, --no-cmake-ninja: Use Ninja as cmake generator option (off by default)
     --run-ctest, --no-run-ctest: Run unit tests with CTest (off by default)
+    -j, --make-jobs: Number of jobs when running make (default: '1')
     --run-install, --no-run-install: Run install with CMake (off by default)
     --banner-text: Print banner with specified text (no default)
     --trace-commands, --no-trace-commands: Print executed commands (off by default)

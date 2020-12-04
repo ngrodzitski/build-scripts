@@ -8,16 +8,20 @@
 # ARG_OPTIONAL_SINGLE([compiler],[c],[Compiler to use: clang, gcc],[gcc])
 # ARG_OPTIONAL_SINGLE([compiler-major],[M],[Compiler major version])
 # ARG_OPTIONAL_SINGLE([compiler-minor],[m],[Compiler minor version])
+# ARG_OPTIONAL_BOOLEAN([compiler-names-add-version],[],[Adding version when declaring CC, CPP variables for CMake],[on])
 # ARG_OPTIONAL_SINGLE([build-type],[t],[Build type: Release, Debug, RelWithDebInfo],[Release])
 # ARG_OPTIONAL_SINGLE([build-dir],[d],[Directory to build in (CMAKE_BINARY_DIR in terms of CMake)])
 # ARG_OPTIONAL_SINGLE([source-dir],[s],[Source root directory (if not specified considered a parent directory of a build directory)])
-# ARG_OPTIONAL_SINGLE([make-jobs],[j],[Number of jobs when running make],[1])
-# ARG_OPTIONAL_SINGLE([cmake-path],[],[Path to CMake],[cmake])
-# ARG_OPTIONAL_SINGLE([cmake-options],[],[Extra CMake options (e.g. "-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>")])
-# ARG_OPTIONAL_BOOLEAN([compiler-names-add-version],[],[Adding version when declaring CC, CPP variables for CMake],[on])
 # ARG_OPTIONAL_BOOLEAN([conan-enable],[],[Enable conan for a project (runs 'conan install' command with necessary flags for a given source directory)],[off])
+# ARG_OPTIONAL_SINGLE([conan-options],[],[Extra Conan options (e.g. "-r my-remote-server")])
+# ARG_OPTIONAL_SINGLE([conan-deploy-path],[],[Run conan deploy install to a given path])
+# ARG_OPTIONAL_SINGLE([cmake-path],[],[Path to CMake],[cmake])
+# ARG_OPTIONAL_SINGLE([ctest-path],[],[Path to CTest],[ctest])
+# ARG_OPTIONAL_SINGLE([cmake-options],[],[Extra CMake options (e.g. "-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>")])
+# ARG_OPTIONAL_BOOLEAN([cmake-ninja],[n],[Use Ninja as cmake generator option],[off])
 # ARG_OPTIONAL_BOOLEAN([run-ctest],[],[Run unit tests with CTest],[off])
 # ARG_OPTIONAL_BOOLEAN([run-install],[],[Run install with CMake],[off])
+# ARG_OPTIONAL_SINGLE([make-jobs],[j],[Number of jobs when running make],[1])
 # ARG_OPTIONAL_SINGLE([banner-text],[],[Print banner with specified text])
 # ARG_OPTIONAL_BOOLEAN([trace-commands],[],[Print executed commands],[off])
 # ARG_OPTIONAL_BOOLEAN([dry-run],[],[Run without executing commands],[off])
@@ -41,7 +45,7 @@ die()
 
 begins_with_short_option()
 {
-    local first_option all_short_options='cMmtdsjh'
+    local first_option all_short_options='cMmtdsnjh'
     first_option="${1:0:1}"
     test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -50,15 +54,19 @@ begins_with_short_option()
 _arg_compiler="gcc"
 _arg_compiler_major=
 _arg_compiler_minor=
+_arg_compiler_names_add_version="on"
 _arg_build_type="Release"
 _arg_build_dir=
 _arg_source_dir=
-_arg_make_jobs="1"
-_arg_cmake_path="cmake"
-_arg_cmake_options=
-_arg_compiler_names_add_version="on"
 _arg_conan_enable="off"
+_arg_conan_options=
+_arg_conan_deploy_path=
+_arg_cmake_path="cmake"
+_arg_ctest_path="ctest"
+_arg_cmake_options=
+_arg_cmake_ninja="off"
 _arg_run_ctest="off"
+_arg_make_jobs="1"
 _arg_run_install="off"
 _arg_banner_text=
 _arg_trace_commands="off"
@@ -68,20 +76,24 @@ _arg_dry_run="off"
 print_help()
 {
     printf '%s\n' "The general script's help msg"
-    printf 'Usage: %s [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [-j|--make-jobs <arg>] [--cmake-path <arg>] [--cmake-options <arg>] [--(no-)compiler-names-add-version] [--(no-)conan-enable] [--(no-)run-ctest] [--(no-)run-install] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]\n' "$0"
+    printf 'Usage: %s [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [--(no-)compiler-names-add-version] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [--(no-)conan-enable] [--conan-options <arg>] [--conan-deploy-path <arg>] [--cmake-path <arg>] [--ctest-path <arg>] [--cmake-options <arg>] [-n|--(no-)cmake-ninja] [--(no-)run-ctest] [-j|--make-jobs <arg>] [--(no-)run-install] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]\n' "$0"
     printf '\t%s\n' "-c, --compiler: Compiler to use: clang, gcc (default: 'gcc')"
     printf '\t%s\n' "-M, --compiler-major: Compiler major version (no default)"
     printf '\t%s\n' "-m, --compiler-minor: Compiler minor version (no default)"
+    printf '\t%s\n' "--compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)"
     printf '\t%s\n' "-t, --build-type: Build type: Release, Debug, RelWithDebInfo (default: 'Release')"
     printf '\t%s\n' "-d, --build-dir: Directory to build in (CMAKE_BINARY_DIR in terms of CMake) (no default)"
     printf '\t%s\n' "-s, --source-dir: Source root directory (if not specified considered a parent directory of a build directory) (no default)"
-    printf '\t%s\n' "-j, --make-jobs: Number of jobs when running make (default: '1')"
-    printf '\t%s\n' "--cmake-path: Path to CMake (default: 'cmake')"
-    printf '\t%s\n' "--cmake-options: Extra CMake options (e.g. \"-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>\") (no default)"
-    printf '\t%s\n' "--compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)"
     printf '\t%s\n' "--conan-enable, --no-conan-enable: Enable conan for a project (runs 'conan install' command with necessary flags for a given source directory) (off by default)"
+    printf '\t%s\n' "--conan-options: Extra Conan options (e.g. \"-r my-remote-server\") (no default)"
+    printf '\t%s\n' "--conan-deploy-path: Run conan deploy install to a given path (no default)"
+    printf '\t%s\n' "--cmake-path: Path to CMake (default: 'cmake')"
+    printf '\t%s\n' "--ctest-path: Path to CTest (default: 'ctest')"
+    printf '\t%s\n' "--cmake-options: Extra CMake options (e.g. \"-DCMAKE_INSTALL_PREFIX=install_path -DMy_PRJ_FLAG_X=On <...>\") (no default)"
+    printf '\t%s\n' "-n, --cmake-ninja, --no-cmake-ninja: Use Ninja as cmake generator option (off by default)"
     printf '\t%s\n' "--run-ctest, --no-run-ctest: Run unit tests with CTest (off by default)"
     printf '\t%s\n' "--run-install, --no-run-install: Run install with CMake (off by default)"
+    printf '\t%s\n' "-j, --make-jobs: Number of jobs when running make (default: '1')"
     printf '\t%s\n' "--banner-text: Print banner with specified text (no default)"
     printf '\t%s\n' "--trace-commands, --no-trace-commands: Print executed commands (off by default)"
     printf '\t%s\n' "--dry-run, --no-dry-run: Run without executing commands (off by default)"
@@ -128,6 +140,10 @@ parse_commandline()
             -m*)
                 _arg_compiler_minor="${_key##-m}"
                 ;;
+            --no-compiler-names-add-version|--compiler-names-add-version)
+                _arg_compiler_names_add_version="on"
+                test "${1:0:5}" = "--no-" && _arg_compiler_names_add_version="off"
+                ;;
             -t|--build-type)
                 test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
                 _arg_build_type="$2"
@@ -161,6 +177,66 @@ parse_commandline()
             -s*)
                 _arg_source_dir="${_key##-s}"
                 ;;
+            --no-conan-enable|--conan-enable)
+                _arg_conan_enable="on"
+                test "${1:0:5}" = "--no-" && _arg_conan_enable="off"
+                ;;
+            --conan-options)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_conan_options="$2"
+                shift
+                ;;
+            --conan-options=*)
+                _arg_conan_options="${_key##--conan-options=}"
+                ;;
+            --conan-deploy-path)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_conan_deploy_path="$2"
+                shift
+                ;;
+            --conan-deploy-path=*)
+                _arg_conan_deploy_path="${_key##--conan-deploy-path=}"
+                ;;
+            --cmake-path)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_cmake_path="$2"
+                shift
+                ;;
+            --cmake-path=*)
+                _arg_cmake_path="${_key##--cmake-path=}"
+                ;;
+            --ctest-path)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_ctest_path="$2"
+                shift
+                ;;
+            --ctest-path=*)
+                _arg_ctest_path="${_key##--ctest-path=}"
+                ;;
+            --cmake-options)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_cmake_options="$2"
+                shift
+                ;;
+            --cmake-options=*)
+                _arg_cmake_options="${_key##--cmake-options=}"
+                ;;
+            -n|--no-cmake-ninja|--cmake-ninja)
+                _arg_cmake_ninja="on"
+                test "${1:0:5}" = "--no-" && _arg_cmake_ninja="off"
+                ;;
+            -n*)
+                _arg_cmake_ninja="on"
+                _next="${_key##-n}"
+                if test -n "$_next" -a "$_next" != "$_key"
+                then
+                    { begins_with_short_option "$_next" && shift && set -- "-n" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+                fi
+                ;;
+            --no-run-ctest|--run-ctest)
+                _arg_run_ctest="on"
+                test "${1:0:5}" = "--no-" && _arg_run_ctest="off"
+                ;;
             -j|--make-jobs)
                 test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
                 _arg_make_jobs="$2"
@@ -171,34 +247,6 @@ parse_commandline()
                 ;;
             -j*)
                 _arg_make_jobs="${_key##-j}"
-                ;;
-            --cmake-path)
-                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-                _arg_cmake_path="$2"
-                shift
-                ;;
-            --cmake-path=*)
-                _arg_cmake_path="${_key##--cmake-path=}"
-                ;;
-            --cmake-options)
-                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-                _arg_cmake_options="$2"
-                shift
-                ;;
-            --cmake-options=*)
-                _arg_cmake_options="${_key##--cmake-options=}"
-                ;;
-            --no-compiler-names-add-version|--compiler-names-add-version)
-                _arg_compiler_names_add_version="on"
-                test "${1:0:5}" = "--no-" && _arg_compiler_names_add_version="off"
-                ;;
-            --no-conan-enable|--conan-enable)
-                _arg_conan_enable="on"
-                test "${1:0:5}" = "--no-" && _arg_conan_enable="off"
-                ;;
-            --no-run-ctest|--run-ctest)
-                _arg_run_ctest="on"
-                test "${1:0:5}" = "--no-" && _arg_run_ctest="off"
                 ;;
             --no-run-install|--run-install)
                 _arg_run_install="on"
@@ -285,22 +333,28 @@ else
     _compiler_ar=llvm-ar
 fi
 
-if [ "" == "$_arg_compiler_major" ]; then
-    _PRINT_HELP=yes die "FATAL ERROR: --compiler-major option cannot be empty " 1
-fi
-
-# if conan not enabled the value will be simply ignored.
-_conan_compiler_version=$_arg_compiler_major
-
 if [ "on" == "$_arg_compiler_names_add_version" ]; then
+    if [ "" == "$_arg_compiler_major" ]; then
+        _PRINT_HELP=yes die "FATAL ERROR: --compiler-major option cannot be empty if compiler version  is required (--compiler-names-add-version)" 1
+    fi
+
+    _conan_compiler_version=$_arg_compiler_major
     wrapped_execute export CC=$_compiler_cc-$_arg_compiler_major
     wrapped_execute export CPP=$_compiler_cxx-$_arg_compiler_major
     wrapped_execute export AR=$_compiler_ar-$_arg_compiler_major
     wrapped_execute export CXX=$_compiler_cxx-$_arg_compiler_major
-fi
 
-if [ "" != "$_arg_compiler_minor" ]; then
-  _conan_compiler_version=$_conan_compiler_version.$_arg_compiler_minor
+    _conan_compiler_version=$_arg_compiler_major
+    if [ "" != "$_arg_compiler_minor" ]; then
+      _conan_compiler_version=$_conan_compiler_version.$_arg_compiler_minor
+    fi
+else
+    wrapped_execute export CC=$_compiler_cc
+    wrapped_execute export CPP=$_compiler_cxx
+    wrapped_execute export AR=$_compiler_ar
+    wrapped_execute export CXX=$_compiler_cxx
+
+    _conan_compiler_version=
 fi
 
 if [ "Debug" != "$_arg_build_type" ] && [ "Release" != "$_arg_build_type" ] && [ "RelWithDebInfo" != "$_arg_build_type" ]; then
@@ -318,18 +372,22 @@ else
 fi
 
 echo "--------------------------------------------------"
-echo "compiler            : $_compiler_cc"
-echo "compiler version    : $_conan_compiler_version"
-echo "Build type          : $_arg_build_type"
-echo "Build dir           : $_arg_build_dir"
-echo "Source dir          : $_arg_source_dir"
-echo "CMake path          : $_arg_cmake_path"
-echo "Extra CMake options : $_arg_cmake_options"
-echo "Conan enabled       : $_arg_conan_enable"
-echo "Run tests           : $_arg_run_ctest"
-echo "Run install         : $_arg_run_install"
-echo "Trace commands      : $_arg_trace_commands"
-echo "Dry run             : $_arg_dry_run"
+echo "compiler              : $_compiler_cc"
+echo "compiler version      : $_conan_compiler_version"
+echo "Build type            : $_arg_build_type"
+echo "Build dir             : $_arg_build_dir"
+echo "Conan enabled         : $_arg_conan_enable"
+echo "Extra Conan options   : $_arg_conan_options"
+echo "Conan deploy path     : $_arg_conan_deploy_path"
+echo "Source dir            : $_arg_source_dir"
+echo "CMake path            : $_arg_cmake_path"
+echo "CTest path            : $_arg_ctest_path"
+echo "Extra CMake options   : $_arg_cmake_options"
+echo "CMake Ninja generator : $_arg_cmake_ninja"
+echo "Run tests             : $_arg_run_ctest"
+echo "Run install           : $_arg_run_install"
+echo "Trace commands        : $_arg_trace_commands"
+echo "Dry run               : $_arg_dry_run"
 echo "--------------------------------------------------"
 
 wrapped_execute rm -rf $_arg_build_dir || true
@@ -341,12 +399,31 @@ if [ "on" == "$_arg_conan_enable" ]; then
     echo "Conan"
     echo "--------------------------------------------------"
 
+    _conan_compiler_version_option=
+    if [ "" != "$_conan_compiler_version" ]; then
+        _conan_compiler_version_option="-s compiler.version=$_conan_compiler_version"
+    fi
+
     wrapped_execute conan install \
-        -s compiler=$_compiler_cc \
-        -s compiler.version=$_conan_compiler_version \
-        -s compiler.libcxx=libstdc++11 \
-        -s build_type=$_arg_build_type \
-        --build missing $_arg_source_dir
+                    -s compiler=$_compiler_cc \
+                     $_conan_compiler_version_option \
+                    -s compiler.libcxx=libstdc++11 \
+                    -s build_type=$_arg_build_type \
+                    --build missing \
+                    $_arg_conan_options \
+                    $_arg_source_dir
+
+    if [ "" != "$_arg_conan_deploy_path" ]; then
+        wrapped_execute conan install \
+                        -s compiler=$_compiler_cc \
+                        $_conan_compiler_version_option \
+                        -s compiler.libcxx=libstdc++11 \
+                        -s build_type=$_arg_build_type \
+                        --build missing \
+                        $_arg_conan_options \
+                        -g deploy --install-folder $_arg_conan_deploy_path \
+                        $_arg_source_dir
+    fi
 
     echo "--------------------------------------------------"
 fi
@@ -355,7 +432,19 @@ echo ""
 echo "CMake"
 echo "--------------------------------------------------"
 
-wrapped_execute $_arg_cmake_path -DCMAKE_BUILD_TYPE=$_arg_build_type $_arg_cmake_options $_arg_source_dir
+_cmake_generator=
+
+if [ "on" == "$_arg_cmake_ninja" ]; then
+    _cmake_generator="-G Ninja"
+fi
+
+wrapped_execute pwd
+wrapped_execute $_arg_cmake_path \
+                -DCMAKE_BUILD_TYPE=$_arg_build_type \
+                $_arg_cmake_options \
+                $_cmake_generator \
+                $_arg_source_dir
+
 wrapped_execute $_arg_cmake_path --build . -j $_arg_make_jobs
 
 echo "--------------------------------------------------"
@@ -365,7 +454,7 @@ if [ "on" == "$_arg_run_ctest" ]; then
     echo "CTest"
     echo "--------------------------------------------------"
 
-    wrapped_execute ctest -T test
+    wrapped_execute $_arg_ctest_path -T test
 
     echo "--------------------------------------------------"
 fi
