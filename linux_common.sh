@@ -10,7 +10,7 @@
 # ARG_OPTIONAL_SINGLE([compiler-minor],[m],[Compiler minor version])
 # ARG_OPTIONAL_BOOLEAN([compiler-names-add-version],[],[Adding version when declaring CC, CPP variables for CMake],[on])
 # ARG_OPTIONAL_SINGLE([compiler-libcxx],[],[The version of libcxx to use in a build: libstdc++11,libstdc++,libc++],[libstdc++11])
-# ARG_OPTIONAL_SINGLE([build-type],[t],[Build type: Release, Debug, RelWithDebInfo],[Release])
+# ARG_OPTIONAL_SINGLE([build-type],[t],[Build type: Release, Debug, RelWithDebInfo, MinSizeRel],[Release])
 # ARG_OPTIONAL_SINGLE([build-dir],[d],[Directory to build in (CMAKE_BINARY_DIR in terms of CMake)])
 # ARG_OPTIONAL_SINGLE([source-dir],[s],[Source root directory (if not specified considered a parent directory of a build directory)])
 # ARG_OPTIONAL_BOOLEAN([conan-enable],[],[Enable conan for a project (runs 'conan install' command with necessary flags for a given source directory)],[off])
@@ -84,7 +84,7 @@ print_help()
     printf '\t%s\n' "-m, --compiler-minor: Compiler minor version (no default)"
     printf '\t%s\n' "--compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)"
     printf '\t%s\n' "--compiler-libcxx: The version of libcxx to use in a build: libstdc++11,libstdc++,libc++ (default: 'libstdc++11')"
-    printf '\t%s\n' "-t, --build-type: Build type: Release, Debug, RelWithDebInfo (default: 'Release')"
+    printf '\t%s\n' "-t, --build-type: Build type: Release, Debug, RelWithDebInfo, MinSizeRel (default: 'Release')"
     printf '\t%s\n' "-d, --build-dir: Directory to build in (CMAKE_BINARY_DIR in terms of CMake) (no default)"
     printf '\t%s\n' "-s, --source-dir: Source root directory (if not specified considered a parent directory of a build directory) (no default)"
     printf '\t%s\n' "--conan-enable, --no-conan-enable: Enable conan for a project (runs 'conan install' command with necessary flags for a given source directory) (off by default)"
@@ -368,8 +368,8 @@ else
     _conan_compiler_version=
 fi
 
-if [ "Debug" != "$_arg_build_type" ] && [ "Release" != "$_arg_build_type" ] && [ "RelWithDebInfo" != "$_arg_build_type" ]; then
-    _PRINT_HELP=yes die "FATAL ERROR: --build-type must be one of: [Release, Debug, RelWithDebInfo] " 1
+if [ "Debug" != "$_arg_build_type" ] && [ "Release" != "$_arg_build_type" ] && [ "RelWithDebInfo" != "$_arg_build_type" ] && [ "MinSizeRel" != "$_arg_build_type" ]; then
+    _PRINT_HELP=yes die "FATAL ERROR: --build-type must be one of: [Release, Debug, RelWithDebInfo, MinSizeRel] " 1
 fi
 
 _arg_build_dir=$(readlink -f $_arg_build_dir)
