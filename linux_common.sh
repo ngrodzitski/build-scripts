@@ -385,7 +385,7 @@ fi
 echo "--------------------------------------------------"
 echo "compiler              : $_compiler_cc"
 echo "compiler version      : $_conan_compiler_version"
-echo "compiler libcxx     : $_arg_compiler_libcxx"
+echo "compiler libcxx       : $_arg_compiler_libcxx"
 echo "Build type            : $_arg_build_type"
 echo "Build dir             : $_arg_build_dir"
 echo "Conan enabled         : $_arg_conan_enable"
