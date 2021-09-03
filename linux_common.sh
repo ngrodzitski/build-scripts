@@ -336,6 +336,7 @@ fi
 
 if [ "gcc" == "$_arg_compiler" ]; then
     _compiler_cc=gcc
+    _compiler_cpp=cpp
     _compiler_cxx=g++
     _compiler_ar=gcc-ar
 else
@@ -351,7 +352,9 @@ if [ "on" == "$_arg_compiler_names_add_version" ]; then
 
     _conan_compiler_version=$_arg_compiler_major
     wrapped_execute export CC=$_compiler_cc-$_arg_compiler_major
-    wrapped_execute export CPP=$_compiler_cxx-$_arg_compiler_major
+    if [ "gcc" == "$_arg_compiler" ]; then
+        wrapped_execute export CPP=$_compiler_cpp-$_arg_compiler_major
+    fi
     wrapped_execute export AR=$_compiler_ar-$_arg_compiler_major
     wrapped_execute export CXX=$_compiler_cxx-$_arg_compiler_major
 
@@ -361,7 +364,9 @@ if [ "on" == "$_arg_compiler_names_add_version" ]; then
     fi
 else
     wrapped_execute export CC=$_compiler_cc
-    wrapped_execute export CPP=$_compiler_cxx
+    if [ "gcc" == "$_arg_compiler" ]; then
+        wrapped_execute export CPP=$_compiler_cpp
+    fi
     wrapped_execute export AR=$_compiler_ar
     wrapped_execute export CXX=$_compiler_cxx
 
