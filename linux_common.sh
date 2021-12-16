@@ -1,15 +1,15 @@
 #!/bin/bash -e
 #
-# version="0.1"
-#
+# version="0.2"
 # This is a rather minimal example Argbash potential
 # Example taken from http://argbash.readthedocs.io/en/stable/example.html
 #
 # ARG_OPTIONAL_SINGLE([compiler],[c],[Compiler to use: clang, gcc],[gcc])
 # ARG_OPTIONAL_SINGLE([compiler-major],[M],[Compiler major version])
 # ARG_OPTIONAL_SINGLE([compiler-minor],[m],[Compiler minor version])
+# ARG_OPTIONAL_SINGLE([compiler-cppstd],[],[Compiler C++ standard: 11, 14, 17, 20, 23])
 # ARG_OPTIONAL_BOOLEAN([compiler-names-add-version],[],[Adding version when declaring CC, CPP variables for CMake],[on])
-# ARG_OPTIONAL_SINGLE([compiler-libcxx],[],[The version of libcxx to use in a build: libstdc++11,libstdc++,libc++],[libstdc++11])
+# ARG_OPTIONAL_SINGLE([compiler-libcxx],[],[The version of libcxx to use in a build: libstdc++11,libstdc++,libc++])
 # ARG_OPTIONAL_SINGLE([build-type],[t],[Build type: Release, Debug, RelWithDebInfo, MinSizeRel],[Release])
 # ARG_OPTIONAL_SINGLE([build-dir],[d],[Directory to build in (CMAKE_BINARY_DIR in terms of CMake)])
 # ARG_OPTIONAL_SINGLE([source-dir],[s],[Source root directory (if not specified considered a parent directory of a build directory)])
@@ -55,8 +55,9 @@ begins_with_short_option()
 _arg_compiler="gcc"
 _arg_compiler_major=
 _arg_compiler_minor=
+_arg_compiler_cppstd=
 _arg_compiler_names_add_version="on"
-_arg_compiler_libcxx="libstdc++11"
+_arg_compiler_libcxx=
 _arg_build_type="Release"
 _arg_build_dir=
 _arg_source_dir=
@@ -78,12 +79,13 @@ _arg_dry_run="off"
 print_help()
 {
     printf '%s\n' "The general script's help msg"
-    printf 'Usage: %s [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [--(no-)compiler-names-add-version] [--compiler-libcxx <arg>] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [--(no-)conan-enable] [--conan-options <arg>] [--conan-deploy-path <arg>] [--cmake-path <arg>] [--ctest-path <arg>] [--cmake-options <arg>] [-n|--(no-)cmake-ninja] [--(no-)run-ctest] [--(no-)run-install] [-j|--make-jobs <arg>] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]\n' "$0"
+    printf 'Usage: %s [-c|--compiler <arg>] [-M|--compiler-major <arg>] [-m|--compiler-minor <arg>] [--compiler-cppstd <arg>] [--(no-)compiler-names-add-version] [--compiler-libcxx <arg>] [-t|--build-type <arg>] [-d|--build-dir <arg>] [-s|--source-dir <arg>] [--(no-)conan-enable] [--conan-options <arg>] [--conan-deploy-path <arg>] [--cmake-path <arg>] [--ctest-path <arg>] [--cmake-options <arg>] [-n|--(no-)cmake-ninja] [--(no-)run-ctest] [--(no-)run-install] [-j|--make-jobs <arg>] [--banner-text <arg>] [--(no-)trace-commands] [--(no-)dry-run] [-h|--help]\n' "$0"
     printf '\t%s\n' "-c, --compiler: Compiler to use: clang, gcc (default: 'gcc')"
     printf '\t%s\n' "-M, --compiler-major: Compiler major version (no default)"
     printf '\t%s\n' "-m, --compiler-minor: Compiler minor version (no default)"
+    printf '\t%s\n' "--compiler-cppstd: Compiler C++ standard: 11, 14, 17, 20, 23 (no default)"
     printf '\t%s\n' "--compiler-names-add-version, --no-compiler-names-add-version: Adding version when declaring CC, CPP variables for CMake (on by default)"
-    printf '\t%s\n' "--compiler-libcxx: The version of libcxx to use in a build: libstdc++11,libstdc++,libc++ (default: 'libstdc++11')"
+    printf '\t%s\n' "--compiler-libcxx: The version of libcxx to use in a build: libstdc++11,libstdc++,libc++ (no default)"
     printf '\t%s\n' "-t, --build-type: Build type: Release, Debug, RelWithDebInfo, MinSizeRel (default: 'Release')"
     printf '\t%s\n' "-d, --build-dir: Directory to build in (CMAKE_BINARY_DIR in terms of CMake) (no default)"
     printf '\t%s\n' "-s, --source-dir: Source root directory (if not specified considered a parent directory of a build directory) (no default)"
@@ -142,6 +144,14 @@ parse_commandline()
                 ;;
             -m*)
                 _arg_compiler_minor="${_key##-m}"
+                ;;
+            --compiler-cppstd)
+                test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+                _arg_compiler_cppstd="$2"
+                shift
+                ;;
+            --compiler-cppstd=*)
+                _arg_compiler_cppstd="${_key##--compiler-cppstd=}"
                 ;;
             --no-compiler-names-add-version|--compiler-names-add-version)
                 _arg_compiler_names_add_version="on"
@@ -390,7 +400,19 @@ fi
 echo "--------------------------------------------------"
 echo "compiler              : $_compiler_cc"
 echo "compiler version      : $_conan_compiler_version"
+
+if [ "" == "$_arg_compiler_cppstd" ]; then
+echo "compiler C++ standard : <default>"
+else
+echo "compiler C++ standard : $_arg_compiler_cppstd"
+fi
+
+if [ "" == "$_arg_compiler_libcxx" ]; then
+echo "compiler libcxx       : <default>"
+else
 echo "compiler libcxx       : $_arg_compiler_libcxx"
+fi
+
 echo "Build type            : $_arg_build_type"
 echo "Build dir             : $_arg_build_dir"
 echo "Conan enabled         : $_arg_conan_enable"
@@ -421,10 +443,21 @@ if [ "on" == "$_arg_conan_enable" ]; then
         _conan_compiler_version_option="-s compiler.version=$_conan_compiler_version"
     fi
 
+    _conan_compiler_libcxx_option=
+    if [ "" != "$_arg_compiler_libcxx" ]; then
+        _conan_compiler_libcxx_option="-s compiler.libcxx=$_arg_compiler_libcxx"
+    fi
+
+    _conan_compiler_cppstd_option=
+    if [ "" != "$_arg_compiler_cppstd" ]; then
+        _conan_compiler_cppstd_option="-s compiler.cppstd=$_arg_compiler_cppstd"
+    fi
+
     wrapped_execute conan install \
                     -s compiler=$_compiler_cc \
                      $_conan_compiler_version_option \
-                    -s compiler.libcxx=$_arg_compiler_libcxx \
+                     $_conan_compiler_libcxx_option \
+                     $_conan_compiler_cppstd_option \
                     -s build_type=$_arg_build_type \
                     --build missing \
                     $_arg_conan_options \
@@ -433,8 +466,9 @@ if [ "on" == "$_arg_conan_enable" ]; then
     if [ "" != "$_arg_conan_deploy_path" ]; then
         wrapped_execute conan install \
                         -s compiler=$_compiler_cc \
-                        $_conan_compiler_version_option \
-                        -s compiler.libcxx=$_arg_compiler_libcxx \
+                     $_conan_compiler_version_option \
+                     $_conan_compiler_libcxx_option \
+                     $_conan_compiler_cppstd_option \
                         -s build_type=$_arg_build_type \
                         --build missing \
                         $_arg_conan_options \
@@ -455,9 +489,14 @@ if [ "on" == "$_arg_cmake_ninja" ]; then
     _cmake_generator="-G Ninja"
 fi
 
+_cmake_compiler_libcxx_option=
+if [ "" != "$_arg_compiler_libcxx" ]; then
+    _cmake_compiler_libcxx_option="-DEXPLICIT_LIBCXX=$_arg_compiler_libcxx"
+fi
+
 wrapped_execute $_arg_cmake_path \
                 -DCMAKE_BUILD_TYPE=$_arg_build_type \
-                -DEXPLICIT_LIBCXX=$_arg_compiler_libcxx \
+                $_cmake_compiler_libcxx_option \
                 $_arg_cmake_options \
                 $_cmake_generator \
                 $_arg_source_dir
