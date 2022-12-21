@@ -494,9 +494,14 @@ if [ "" != "$_arg_compiler_libcxx" ]; then
     _cmake_compiler_libcxx_option="-DEXPLICIT_LIBCXX=$_arg_compiler_libcxx"
 fi
 
+if [ "" != "$_arg_compiler_cppstd" ]; then
+    _cmake_compiler_cppstd_option="-DEXPLICIT_CPPSTD=$_arg_compiler_cppstd"
+fi
+
 wrapped_execute $_arg_cmake_path \
                 -DCMAKE_BUILD_TYPE=$_arg_build_type \
                 $_cmake_compiler_libcxx_option \
+                $_cmake_compiler_cppstd_option \
                 $_arg_cmake_options \
                 $_cmake_generator \
                 $_arg_source_dir
