@@ -1,3 +1,11 @@
+# RETIRED 
+
+**Since November 2023**
+
+These scripts were intended to simplify development of conan based projects. 
+Conan-install and cmake-generate steps were having many overlapring options (the same values were needed for conan and cmake tools).
+These scripts served as a tool to rceive params once and then apply them as necessary to both tools (running tests or install is just a sugar).
+
 # Build scripts
 
 A collection of scripts for building C++ projects with CMake and [Conan](https://conan.io/) package manager.
